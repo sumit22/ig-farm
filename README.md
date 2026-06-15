@@ -18,8 +18,8 @@ docker-compose up -d
 ```
 
 This starts:
-- PostgreSQL database on `localhost:5432`
-- FastAPI server on `localhost:8000`
+- PostgreSQL database on `localhost:5433`
+- FastAPI server on `localhost:8001`
 
 2. **Load the Chrome Extension:**
 
@@ -32,7 +32,7 @@ This starts:
 3. **Test the API:**
 
 ```bash
-curl http://localhost:8000/health
+curl http://localhost:8001/health
 ```
 
 ## Architecture

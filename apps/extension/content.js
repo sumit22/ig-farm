@@ -18,7 +18,7 @@ async function capturePage() {
   const capturedAt = new Date().toISOString();
 
   try {
-    const response = await fetch('http://localhost:8000/api/capture', {
+    const response = await fetch('http://localhost:8001/api/capture', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

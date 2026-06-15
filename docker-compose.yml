@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ig_farm_dev
       POSTGRES_DB: ig_farm
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,7 +23,7 @@ services:
     container_name: ig-farm-api
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       DATABASE_URL: postgresql://ig_farm:ig_farm_dev@postgres:5432/ig_farm
     volumes:
