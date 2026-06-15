@@ -48,6 +48,11 @@ def capture(payload: CaptureRequest, db: Session = Depends(get_db)):
         db.add(capture)
         db.flush()
 
+        # Extract username from URL to mark as visited
+        import re
+        username_match = re.search(r"instagram\.com/([^/?]+)", payload.url)
+        visited_username = username_match.group(1) if username_match else None
+
         # Extract profile data from HTML
         parser = ProfileParser(payload.html, payload.url)
         profile_data = parser.extract_profile()
@@ -73,6 +78,13 @@ def capture(payload: CaptureRequest, db: Session = Depends(get_db)):
                 queue_service = QueueService(db)
                 for username in related:
                     queue_service.add_to_queue(username)
+
+            # Mark the captured profile as VISITED in queue
+            if visited_username:
+                queue_item = db.query(ProfileQueue).filter_by(username=visited_username).first()
+                if queue_item:
+                    queue_item.status = "VISITED"
+                    queue_item.visited_at = datetime.utcnow()
 
         db.commit()
 
