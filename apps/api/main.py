@@ -2,11 +2,18 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
+import logging
 import os
 
 from models import engine, Base, Capture, Profile, ProfileQueue, init_db
 from schemas import CaptureRequest, CaptureResponse, NextProfileResponse
 from services import ProfileParser, QueueService, ProfileSelector
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(name)s %(message)s',
+)
+logger = logging.getLogger('ig-farm-api')
 
 # Initialize database
 init_db()
@@ -26,6 +33,7 @@ def get_db():
 
 @app.get("/health")
 def health():
+    logger.info('Health check requested')
     return {"status": "ok"}
 
 
@@ -37,6 +45,8 @@ def capture(payload: CaptureRequest, db: Session = Depends(get_db)):
     Extract profile data.
     Return next profile to visit.
     """
+    logger.info('Capture endpoint hit: %s', payload.url)
+    logger.debug('Capture payload title=%s captured_at=%s html_length=%d', payload.title, payload.captured_at, len(payload.html or ''))
     try:
         # Store raw capture
         capture = Capture(
@@ -91,6 +101,7 @@ def capture(payload: CaptureRequest, db: Session = Depends(get_db)):
         # Get next profile
         selector = ProfileSelector(db)
         next_profile_url = selector.get_next_profile()
+        logger.info('Capture processed, next_profile=%s', next_profile_url)
 
         return CaptureResponse(
             status="ok",
@@ -99,6 +110,7 @@ def capture(payload: CaptureRequest, db: Session = Depends(get_db)):
 
     except Exception as e:
         db.rollback()
+        logger.exception('Capture processing failed')
         raise HTTPException(status_code=500, detail=str(e))
 
 
