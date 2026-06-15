@@ -1,0 +1,10 @@
+{
+  "name": "ig-farm-extension",
+  "version": "1.0.0",
+  "description": "Instagram profile collection extension",
+  "main": "content.js",
+  "scripts": {
+    "build": "echo 'No build step for now'",
+    "test": "echo 'No tests yet'"
+  }
+}
