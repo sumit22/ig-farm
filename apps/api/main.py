@@ -7,6 +7,7 @@ import logging
 import os
 
 from models import engine, Base, Capture, Profile, ProfileQueue, init_db
+from sqlalchemy.exc import IntegrityError
 from schemas import CaptureRequest, CaptureResponse, NextProfileResponse
 from services import ProfileParser, QueueService, ProfileSelector
 
@@ -78,19 +79,33 @@ def capture(payload: CaptureRequest, db: Session = Depends(get_db)):
         profile_data = parser.extract_profile()
 
         if profile_data:
+            username = profile_data.get("username")
             # Check if profile exists
-            existing = db.query(Profile).filter_by(username=profile_data["username"]).first()
+            existing = db.query(Profile).filter_by(username=username).first()
             if existing:
-                # Update
+                # Update existing profile
                 for key, value in profile_data.items():
                     if value is not None:
                         setattr(existing, key, value)
                 existing.updated_at = datetime.utcnow()
             else:
-                # Create new
-                profile = Profile(**profile_data)
-                db.add(profile)
-                db.flush()
+                # Create new - handle race-condition duplicates
+                try:
+                    profile = Profile(**profile_data)
+                    db.add(profile)
+                    db.flush()
+                except IntegrityError:
+                    # Another process inserted the same username concurrently.
+                    db.rollback()
+                    existing = db.query(Profile).filter_by(username=username).first()
+                    if existing:
+                        for key, value in profile_data.items():
+                            if value is not None:
+                                setattr(existing, key, value)
+                        existing.updated_at = datetime.utcnow()
+                    else:
+                        # Re-raise if unexpected
+                        raise
 
             # Extract related profiles
             related = parser.extract_related_profiles()
