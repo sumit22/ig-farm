@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
@@ -19,6 +20,15 @@ logger = logging.getLogger('ig-farm-api')
 init_db()
 
 app = FastAPI(title="IG Farm API", version="1.0")
+
+# Allow CORS so extension and browser preflight requests succeed during development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def get_db():
