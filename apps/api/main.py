@@ -121,6 +121,9 @@ def capture(payload: CaptureRequest, db: Session = Depends(get_db)):
                     queue_item.status = "VISITED"
                     queue_item.visited_at = datetime.utcnow()
 
+            # Remove raw HTML content after extraction to conserve disk space
+            capture.html = None
+
         db.commit()
 
         # Get next profile

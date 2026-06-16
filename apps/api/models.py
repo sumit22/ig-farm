@@ -15,7 +15,7 @@ class Capture(Base):
 
     id = Column(Integer, primary_key=True)
     url = Column(String(500), nullable=False)
-    html = Column(Text, nullable=False)
+    html = Column(Text, nullable=True)
     title = Column(String(500))
     captured_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
