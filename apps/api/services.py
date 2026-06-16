@@ -226,22 +226,63 @@ class ProfileParser:
         return None
 
     def extract_related_profiles(self) -> List[str]:
-        """Extract similar/related profile usernames."""
-        usernames = []
+        """Extract similar/related profile usernames from the similar accounts section."""
+        usernames = set()
         try:
-            # Look for profile links
-            links = self.soup.find_all("a", href=re.compile(r"instagram\.com/[^/?]+/?$"))
-            for link in links[:10]:  # Limit to 10
-                href = link["href"]
-                match = re.search(r"instagram\.com/([^/?]+)", href)
-                if match:
-                    username = match.group(1)
-                    if username and username != "explore":
-                        usernames.append(username)
+            labels = [
+                r"Similar accounts",
+                r"Suggested for you",
+                r"Suggested",
+                r"Recommended",
+                r"Suggestions",
+            ]
+            label_regex = re.compile(r"(?:%s)" % r"|".join(labels), re.IGNORECASE)
+
+            sections = []
+            for node in self.soup.find_all(text=label_regex):
+                parent = node.parent
+                while parent and parent.name not in ["section", "div", "article", "main"]:
+                    parent = parent.parent
+                if parent is not None:
+                    sections.append(parent)
+
+            if not sections:
+                sections = self.soup.find_all(
+                    lambda tag: tag.name in ["section", "div", "article"]
+                    and tag.get_text(" ").strip() and label_regex.search(tag.get_text(" "))
+                )
+
+            for section in sections:
+                links = section.find_all("a", href=re.compile(r"instagram\.com/[^/?]+/?$"))
+                for link in links:
+                    href = link.get("href", "")
+                    match = re.search(r"instagram\.com/([^/?]+)", href)
+                    if match:
+                        username = match.group(1)
+                        if username and username not in ["explore", "reels", "stories", "accounts", "direct"]:
+                            if username != self._current_username():
+                                usernames.add(username)
+
+            if not usernames:
+                # fallback: if no similar section found, try any profile-like links in page body
+                links = self.soup.find_all("a", href=re.compile(r"instagram\.com/[^/?]+/?$"))
+                for link in links:
+                    href = link.get("href", "")
+                    match = re.search(r"instagram\.com/([^/?]+)", href)
+                    if match:
+                        username = match.group(1)
+                        if username and username not in ["explore", "reels", "stories", "accounts", "direct"]:
+                            if username != self._current_username():
+                                usernames.add(username)
+
         except Exception as e:
             print(f"Error extracting related profiles: {e}")
 
-        return list(set(usernames))  # Remove duplicates
+        return list(usernames)
+
+    def _current_username(self) -> Optional[str]:
+        match = re.search(r"instagram\.com/([^/?]+)", self.url)
+        return match.group(1) if match else None
 
 
 class QueueService:
